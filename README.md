@@ -14,6 +14,7 @@ Each skill lives in its own source repository under `github.com/deessejs/<skill-
 | [`skills/implement/`](skills/implement/) | Implement a spec-reviewed issue, or apply requested changes from a PR review |
 | [`skills/create-pr/`](skills/create-pr/) | Open a PR for an implemented issue — reads the spec, opens PR, updates labels, posts comment |
 | [`skills/review-pr/`](skills/review-pr/) | Review an open PR — check CI, validate against the spec, post a GitHub review |
+| [`skills/release/`](skills/release/) | Complete a release — merge staging to main, generate changelog, clean up branches, post release notes |
 
 ## Repository layout
 
