@@ -100,7 +100,39 @@ If the spec has a "Scope OUT" section:
 - If unexpected files are present → ask whether to proceed or clean up:
   > "Files outside the spec scope were found in the diff. Should I remove them before opening the PR?"
 
-## §3 — Open PR
+## §3 — Gather PR context
+
+Before opening the PR, gather context for the PR body:
+
+### PR size signal
+
+Check the diff stats:
+
+```bash
+git diff origin/staging...origin/<impl-branch> --stat
+```
+
+Note the total lines changed. If the PR is large, flag it:
+
+| Lines changed | Signal |
+|---|---|
+| < 200 | Small — ideal |
+| 200 - 400 | Medium — acceptable |
+| > 400 | Large — consider splitting next time |
+
+If > 400 lines, add a note to the PR body:
+> **Note:** This PR is larger than ideal (>400 lines). Consider splitting large changes next time.
+
+### Breaking changes check
+
+If `breaking-change` label is present, note that breaking changes need explicit documentation in the PR body.
+
+### UI changes check
+
+If the PR touches UI files (components, styles, pages), ask the user:
+> "Does this PR have UI changes that would benefit from screenshots? If yes, please provide them or describe what changed."
+
+## §4 — Open PR
 
 ```bash
 gh pr create \
@@ -123,9 +155,26 @@ gh pr create \
 **OUT:**
 {Scope OUT from the spec (if present)}
 
+{If PR is large (>400 lines):}
+> **Note:** This PR is larger than ideal (>400 lines). Consider splitting large changes next time.
+
 ## What changed
 
 {Files to touch table from the spec}
+
+## How tested
+
+{Describe how the change was validated beyond CI:}
+
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated (if applicable)
+- [ ] Manual testing: {describe what was tested manually}
+- [ ] Tested on: {env or browser if applicable}
+
+{If UI changes:}
+## Screenshots / Demo
+
+{Attach screenshots or describe UI changes}
 
 ## Acceptance criteria
 
@@ -139,6 +188,12 @@ gh pr create \
 ## Risks addressed
 
 {Risks from the spec, with resolution noted}
+
+{If breaking-change label present:}
+## Breaking Changes
+
+- {describe the breaking change}
+- Migration required: {what users need to do}
 
 {If regression label present:}
 > **Note:** This PR addresses a regression. A `regression` label has been applied to the issue.
@@ -173,10 +228,11 @@ EOF
 - Extract Scope IN/OUT, Acceptance Criteria, and Open Questions from the spec if present
 - If the spec does not have a section, omit that part from the PR body
 - If `regression` label is on the issue, mention it explicitly
+- If `breaking-change` label is present, add the Breaking Changes section
 
 Capture the returned URL.
 
-## §4 — Update Issue
+## §5 — Update Issue
 
 After PR is open, do all three in parallel:
 
@@ -202,9 +258,10 @@ PR opened: {PR URL}
 The spec was reviewed and approved. This PR targets `staging`. After CI green + approval, merge `staging → main` manually.
 
 _{If regression: Note: This addresses a regression. The `regression` label has been applied.}_
+_{If breaking-change: Note: This includes breaking changes. Migration steps are documented in the PR.}_
 ```
 
-## §5 — Verify changeset
+## §6 — Verify changeset
 
 Check if a `.changeset/*.md` file exists in the branch:
 
