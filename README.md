@@ -9,6 +9,7 @@ Each skill lives in its own source repository under `github.com/deessejs/<skill-
 | Skill | Description |
 |---|---|
 | [`skills/create-issue/`](skills/create-issue/) | Create GitHub issues with org-level type, Priority, Effort fields via REST API |
+| [`skills/triage/`](skills/triage/) | Triage a GitHub issue: analyze content, apply labels, post a structured review comment |
 
 ## Repository layout
 
