@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Implement a spec-reviewed issue, or apply requested changes from a PR review. Use --review flag for review-driven mode. Use when asked to implement, work on, or start an issue.
+description: Implement a spec-reviewed issue, or apply requested changes from a PR review. Use --review flag for review-driven mode.
 ---
 
 # `implement` Skill
@@ -9,6 +9,16 @@ Two modes:
 
 - **Spec-driven** (default): implement a spec-reviewed issue
 - **Review-driven** (`--review`): apply requested changes from a PR review
+
+## Definition of Done
+
+An implementation is **done** when all of the following are true:
+
+1. All acceptance criteria from the spec are met
+2. Build, typecheck, tests, and lint pass
+3. Relevant documentation is updated (if specified in the spec)
+4. No regressions are introduced
+5. The implementation stays within the spec's scope boundaries
 
 ## When to use
 
@@ -23,14 +33,15 @@ Two modes:
 ### Spec-driven (default)
 
 ```
-0. Reset      — return to staging and pull latest
-1. Fetch      — read the issue + look for the spec
-2. Check      — gate A: status:ready · gate B: spec exists · gate C: branch exists
-3. Review     — ask for approval if not already given
-4. Checkout   — fetch and checkout the branch
-5. Implement  — write the code following the spec
-6. Validate   — build → typecheck → test → lint → dedupe
-7. Done       — git push + tell user to run /create-pr #{n}
+0. Reset       — return to staging and pull latest
+1. Fetch       — read the issue + look for the spec
+2. Check       — gate A: status:ready · gate B: spec exists · gate C: branch exists
+3. Review      — ask for approval if not already given
+4. Checkout    — fetch and checkout the branch
+5. Implement   — write the code following the spec + resolve open questions
+6. Validate    — technical: build → typecheck → test → lint
+7. Finalize   — acceptance criteria, scope check, docs check
+8. Done        — git push + tell user to run /create-pr #{n}
 ```
 
 ### Review-driven (`--review`)
@@ -41,7 +52,7 @@ Two modes:
 2. Check      — gate A: PR open · gate B: has review with requested_changes
 3. Parse      — extract all requested changes from review comments
 4. Apply      — fix each blocking issue from the review
-5. Validate   — build → typecheck → test → lint → dedupe
+5. Validate   — build → typecheck → test → lint
 6. Push       — git push
 7. Reviewer   — re-request review from original reviewer
 ```
@@ -105,8 +116,10 @@ Read the spec. Check the YAML `status` field.
 
 When asking for approval, include:
 - TL;DR from the spec
+- Scope (IN / OUT)
 - Files count + step count
 - Key risk (warn if `breaking-change` label present)
+- Open questions (if any)
 - Branch + spec path
 
 **If approved:**
@@ -132,13 +145,25 @@ git merge origin/<impl-branch>  # pull latest spec if updated
 
 Read the spec and follow it exactly.
 
+### Open questions
+
+Check the spec's "Open questions" section. For each question:
+- **Resolved during implementation** — make a decision and note it in the commit message or as a code comment
+- **Cannot be resolved** — post a comment on the issue asking for clarification, then stop
+
+If you discover a scope question (something that seems out of scope but might be needed):
+- If clearly out of scope → create a follow-up issue, note it in the commit
+- If unclear → stop and ask
+
+### Implementation rules
+
 - Use `Edit` and `Write` to modify/create files
 - Execute steps in the order listed in the Outline
-- Do not deviate from the spec unless you hit a concrete contradiction — then stop and ask
 - Keep the diff clean: no unrelated reformats mixed with logic changes
 - If the issue has `breaking-change` label → review Risks section carefully before starting
+- Do not deviate from the spec unless you hit a concrete contradiction — then stop and ask
 
-## §6 — Validate
+## §6 — Validate (technical)
 
 After every file change and again at the end, run in sequence:
 
@@ -156,7 +181,36 @@ If any step fails:
 2. Re-run the full sequence
 3. If the fix requires diverging from the spec → stop and ask before continuing
 
-## §7 — Push + Done
+## §7 — Finalize
+
+### Acceptance criteria
+
+Check the spec's "Acceptance criteria" section. For each criterion:
+- Verify it is met
+- If not met → implement until it is
+- If impossible to meet → stop and explain why
+
+### Scope check
+
+Review the diff against the spec's scope:
+
+```bash
+git diff --stat
+```
+
+Compare against the spec's "Files to touch" and "Scope IN/OUT" sections.
+
+- **Unexpected files added?** → either add them to the scope (if needed) or remove them
+- **Expected files not touched?** → implement them or flag why not
+- **Files outside scope?** → remove or create a follow-up issue
+
+### Documentation check
+
+If the spec mentions documentation to update:
+- Check that the documentation is updated
+- If not → update it or flag it
+
+## §8 — Push + Done
 
 ```bash
 git add {files from plan + modified files}
@@ -318,6 +372,9 @@ Tell the user:
 | `breaking-change` label present | Warn and review Risks before proceeding |
 | Tests fail | Fix → re-validate → ask if outside scope |
 | Spec not approved | Ask for approval in §3 |
+| Open question cannot be resolved | Post comment on issue, stop |
+| Acceptance criteria not met | Implement until met or explain why not |
+| Unexpected files in diff | Remove or justify adding to scope |
 
 ## Constraints
 
