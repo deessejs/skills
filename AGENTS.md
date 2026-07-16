@@ -66,3 +66,4 @@ Always run the skill's own test/validation hooks (if any) after a sync before co
 - `skills/create-pr` — open a PR for an implemented issue: reads spec, opens PR, updates labels, posts comment
 - `skills/review-pr` — review an open PR: check CI, validate against the spec, post approve/request-changes/comment review
 - `skills/release` — complete a release: merge staging to main, generate changelog, clean branches, post release notes
+- `skills/ship` — select which PRs go from staging to main, create release branch, open PR to trigger auto-release
