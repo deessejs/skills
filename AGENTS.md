@@ -61,3 +61,4 @@ Always run the skill's own test/validation hooks (if any) after a sync before co
 
 - `skills/create-issue` — create GitHub issues with org-level type, Priority, Effort fields via REST API
 - `skills/triage` — triage a GitHub issue: analyze content, apply labels, post a structured review comment
+- `skills/spec` — explore a status:ready issue, write an implementation spec for human review, push to branch
