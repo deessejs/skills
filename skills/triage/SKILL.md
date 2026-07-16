@@ -1,24 +1,27 @@
 ---
 name: triage
-description: Triage a GitHub issue — analyze content, apply labels, post a structured review comment. Use when asked to triage, review, or label an issue.
+description: Triage a GitHub issue — analyze content, apply labels, set org-level fields (Priority, Effort, Type), post a structured review comment. Use when asked to triage or review an issue.
 ---
 
 # `triage` Skill
 
-Triage a GitHub issue: analyze content, apply missing labels, post a structured review comment.
+Triage a GitHub issue: analyze content, apply labels, set org-level fields, post a structured review comment.
+
+## Source of truth
+
+**Org-level fields** (Priority, Effort, Type) are the single source of truth for these values. **Labels do NOT represent Priority or Effort** in this workflow — use org-fields only.
 
 ## When to use
 
-Use this skill when the user asks to triage, review, or label an issue. Usually runs on newly opened issues.
+Use this skill when the user asks to triage or review an issue. Usually runs on newly opened issues.
 
-**Trigger phrases:** "triage #N", "review this issue", "label this", "triager".
+**Trigger phrases:** "triage #N", "review this issue", "/triage #N".
 
 ## Prerequisites
 
-The `gh` CLI must be authenticated and the repo must be set correctly:
+The `gh` CLI must be authenticated:
 ```bash
 gh auth status
-gh repo view --json name
 ```
 
 ## Step-by-step workflow
@@ -27,17 +30,26 @@ gh repo view --json name
 
 ```bash
 gh issue view <issueNumber> --json title,body,labels,state,author
+gh api "https://api.github.com/repos/<org>/<repo>/issues/<issueNumber>"
 ```
 
 Read: `title`, `body`, `labels[]`, `state`, `author.login`.
 
+Also fetch the org's issue fields to know what's available:
+
+```bash
+gh api "https://api.github.com/orgs/<org>/issue-fields"
+```
+
+Parse to build a map of `{ fieldName → { id, options: { optionName → id } } }`.
+
 ### Step 2 — Identify what's already present
 
 From the `labels` array, note:
-- Does it have an `area:*` label? → required
+- Does it have an `area:*` label?
 - Does it have a `status:*` label?
-- Does it have a `priority:*` label?
-- What type label does it have? (`bug`, `enhancement`, `documentation`, …)
+
+From the issue API response, note the existing org-field values (Priority, Effort, Type).
 
 ### Step 3 — Assess completeness
 
@@ -64,7 +76,7 @@ Apply the decision tree:
 
 ```
 1. Is it complete?
-   NO  → label: needs-info
+   NO  → set needs-info
    YES → continue
 
 2. Is it a valid task? (not dup/question/invalid/wontfix)
@@ -77,10 +89,33 @@ Apply the decision tree:
 3. Is it blocked by another issue? (mentioned in body or comments)
    YES → label: status:blocked + link blocking issue
 
-4. Otherwise → label: status:ready
+4. Otherwise → status:ready
 ```
 
-### Step 5 — Add missing labels
+### Step 5 — Set org-fields and labels
+
+#### Org-fields (Priority, Effort, Type)
+
+If any org-field is missing or incorrect, set or correct it via PATCH:
+
+```bash
+MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+  gh api -X PATCH "https://api.github.com/repos/<org>/<repo>/issues/<issueNumber>" \
+  -H "X-GitHub-Api-Version: 2026-03-10" \
+  --input - <<EOF
+{
+  "type": "Task",
+  "issue_field_values": [
+    {"field_id": <field_id>, "value": "<value>"}
+  ]
+}
+EOF
+```
+
+- Use the **option name as a string** (e.g., `"Medium"`, `"High"`, `"Low"`) — NOT the numeric option ID.
+- Both `type` and `issue_field_values` can be set in the same PATCH call.
+
+#### Labels
 
 ```bash
 gh issue edit <issueNumber> --add-label "label1,label2"
@@ -98,11 +133,6 @@ Labels to add if missing (do NOT remove existing labels):
 - `needs-info` — incomplete, ask for more
 - `status:in-progress` — someone is already working it
 - `status:blocked` — depends on another issue
-
-**priority:** (optional — infer from severity if not stated)
-- `priority:high` — security, data loss, blocks core flows
-- `priority:medium` — default for most issues
-- `priority:low` — nice-to-have, deferred
 
 **Cross-cutting** (add when applicable)
 - `breaking-change` — affects public API surface
@@ -126,10 +156,11 @@ Use the template below that matches your decision.
 ```
 ## Triage Review
 
-**Type:** `bug` / `enhancement` / `documentation` / …
+**Type:** `{type}`
+**Priority:** `{Priority}`
+**Effort:** `{Effort}`
 **Status:** `status:ready`
-**Area:** `area:<auth | ui | web | app | docs | database | email | ci | build | deploy>`
-**Priority:** `priority:<high | medium | low>` (if determinable)
+**Area:** `area:<...>`
 
 **Decision:** All required information provided. This issue is ready to be picked up.
 
@@ -160,7 +191,7 @@ Please update the issue with the missing information so it can be properly triag
 ```
 ## Triage Review
 
-**Type:** `bug` / `enhancement` / …
+**Type:** `{type}`
 **Status:** `status:blocked`
 
 **Decision:** This issue cannot be acted on until the blocking issue is resolved.
@@ -198,23 +229,18 @@ For questions, consider using GitHub Discussions instead of issues.
 - **Keep `status:needs-triage`** — it's the template default; only change if justified
 - **Infer `area:*` from body** when the template dropdown wasn't used
 - **When in doubt, ask for more info** (`needs-info`) rather than guessing
-- **Consistent naming:** use `needs-info` (no prefix), `status:ready`, `status:blocked`, `status:in-progress`
 
-## Project Label Taxonomy
+## Error Handling
 
-> Adapt these to your project's actual label set. Verify with `gh label list` before applying.
+| Situation | Action |
+|---|---|
+| Org-field GET returns 404 | Report to user — org may not have Issue Fields enabled |
+| Org-field value rejected | Verify option name matches the org-field definition; re-fetch if needed |
+| Missing `area:*` label | Always add if absent; infer from issue body |
 
-### area:* (required — infer from content)
-`area:auth` · `area:ui` · `area:web` · `area:app` · `area:docs` · `area:database` · `area:email` · `area:ci` · `area:build` · `area:deploy`
+## Constraints
 
-### status:*
-`status:needs-triage` · `status:ready` · `status:in-progress` · `status:blocked` · `needs-info`
-
-### priority:* (optional)
-`priority:high` · `priority:medium` · `priority:low`
-
-### Cross-cutting
-`breaking-change` · `github_actions` · `dependencies`
-
-### Standard GitHub (closure)
-`bug` · `enhancement` · `documentation` · `duplicate` · `invalid` · `question` · `wontfix`
+- Prefix **every** `gh api` call with `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'` (Windows Git Bash path-rewrite bug).
+- Use `--input -` for `issue_field_values` array — not `-f` or `-F`.
+- Priority, Effort, Type are set via **org-fields** (API), NOT via labels.
+- Never remove existing labels added by the user.
