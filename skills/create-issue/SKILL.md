@@ -7,6 +7,8 @@ description: Create GitHub issues with org-level type, Priority, Effort, and cus
 
 Create GitHub issues with org-level `type`, `Priority`, and `Effort` fields via the REST API. Falls back to plain `gh issue create` if no structured fields are needed.
 
+> **Note:** This skill creates issues. It does not triage them. After creation, use `/triage #N` to verify, deduplicate, categorize, and set the final Priority/Effort/Type values.
+
 ## When to use
 
 Use this skill whenever the user asks to create an issue, file an issue, or open an issue. The skill decides whether a simple `gh issue create` suffices or whether `gh api` with structured fields is needed.
@@ -15,7 +17,7 @@ Use this skill whenever the user asks to create an issue, file an issue, or open
 
 ## Org-fields are the source of truth
 
-Priority, Effort, and Type are set via **org-level fields** (API), not labels. The `/triage` skill will review and adjust these values during the triage process.
+Priority, Effort, and Type are set via **org-level fields** (API), not labels. The `/triage` skill will review and adjust these values after creation — the values set here are initial estimates, not final assessments.
 
 ## How it works
 

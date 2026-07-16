@@ -1,11 +1,23 @@
 ---
 name: triage
-description: Triage a GitHub issue — analyze content, search for duplicates, verify against codebase, apply labels, set org-level fields, post a structured review comment.
+description: Triage a GitHub issue — verify, deduplicate, assess, categorize, prioritize, escalate if needed, post a structured review comment.
 ---
 
 # `triage` Skill
 
-Triage a GitHub issue: analyze content, search for duplicates, verify against the codebase, apply labels, set org-level fields, post a structured review comment.
+Triage a GitHub issue: verify, deduplicate, assess completeness, categorize, prioritize, escalate if needed, and post a structured review comment.
+
+## Definition of "Triaged"
+
+An issue is **triaged** when all of the following are true:
+
+1. **Understood** — the problem or request is clear, not ambiguous
+2. **Verified** — the issue matches the current state of the codebase
+3. **Categorized** — type, area, and cross-cutting labels are applied
+4. **Prioritized** — Priority and Effort are assessed and set
+5. **Actionable** — the next step is clear (ready, blocked, needs-info, closed)
+
+If any of these is missing, the issue is only partially triaged.
 
 ## Source of truth
 
@@ -48,6 +60,7 @@ Parse to build a map of `{ fieldName → { id, options: { optionName → id } } 
 From the `labels` array, note:
 - Does it have an `area:*` label?
 - Does it have a `status:*` label?
+- Does it have a `regression` label?
 
 From the issue API response, note the existing org-field values (Priority, Effort, Type).
 
@@ -71,8 +84,9 @@ Read the codebase to confirm the issue is real, not based on incorrect assumptio
 
 **Bug report** (`bug` label present):
 - Locate the relevant code mentioned in the issue
-- Confirm the bug exists (or note if it cannot be reproduced)
-- If the bug does not exist → flag in triage comment
+- **Attempt to reproduce** the bug. If reproduction steps are provided, follow them exactly.
+- If the bug cannot be reproduced → note this in the triage comment. It may be environment-specific or already fixed.
+- If the bug exists → continue
 
 **Feature request** (`enhancement` label present):
 - Check if the requested feature or equivalent already exists in the codebase
@@ -90,7 +104,25 @@ Read the codebase to confirm the issue is real, not based on incorrect assumptio
 
 If the issue describes something that doesn't match reality → mark as `needs-info` with explanation. Do not apply `status:ready` on an unverified issue.
 
-### Step 5 — Assess completeness
+### Step 5 — Check for regression
+
+For bug reports, check if the issue might be a regression (a bug introduced by a recent change):
+
+```bash
+# Check git history for recent changes to the affected area
+git log --oneline -10 -- <file>
+git log --oneline -10 --since="2 weeks ago"
+```
+
+**If recent changes are found in the affected area:**
+- This may be a regression
+- Apply the `regression` label if present
+- Set Priority higher than you normally would (a regression is more urgent than a pre-existing bug)
+- Note in the triage comment that this appears to be a regression
+
+**Regression detection is important** because regressions signal that recent work broke something. They warrant higher urgency and direct notification to the contributor responsible.
+
+### Step 6 — Assess completeness
 
 Based on the template type, check for required fields:
 
@@ -109,7 +141,7 @@ Based on the template type, check for required fields:
 - ✅ Is the body substantive (not just a title)?
 - ✅ Is the intent clear enough to act on?
 
-### Step 6 — Triage decision
+### Step 7 — Triage decision
 
 Apply the decision tree:
 
@@ -137,7 +169,7 @@ Apply the decision tree:
 6. Otherwise → status:ready
 ```
 
-### Step 7 — Set org-fields and labels
+### Step 8 — Set org-fields and labels
 
 #### Org-fields (Priority, Effort, Type)
 
@@ -159,6 +191,7 @@ EOF
 
 - Use the **option name as a string** (e.g., `"Medium"`, `"High"`, `"Low"`) — NOT the numeric option ID.
 - Both `type` and `issue_field_values` can be set in the same PATCH call.
+- **Regression bugs** → set Priority one level higher than the assessed severity (e.g., assessed Medium → set High).
 
 #### Labels
 
@@ -179,12 +212,28 @@ Labels to add if missing (do NOT remove existing labels):
 - `status:in-progress` — someone is already working it
 - `status:blocked` — depends on another issue
 
-**Cross-cutting** (add when applicable)
+**cross-cutting** (add when applicable)
+- `regression` — bug introduced by recent change
 - `breaking-change` — affects public API surface
 - `github_actions` — related to CI/CD
 - `dependencies` — dependency update request
 
-### Step 8 — Post triage comment
+### Step 9 — Escalate if needed
+
+Some issues warrant immediate stakeholder notification. After labeling and setting org-fields, escalate directly:
+
+| Trigger | Action |
+|---|---|
+| **Security vulnerability** | Do not file a public issue. Follow the security disclosure process. |
+| **Data loss or corruption** | Notify the engineering lead and data team immediately. |
+| **Critical feature broken for all users** | Notify the product manager and engineering lead directly. |
+| **Regression in active development** | Notify the contributor responsible for the recent change (via @mention or DM). |
+
+Escalation is not a substitute for proper triage. **Always triage first, then escalate.**
+
+If escalation is triggered, note it in the triage comment and include who was notified.
+
+### Step 10 — Post triage comment
 
 Read the relevant template from `comments-templates/<status>.md` and fill in the placeholders:
 
@@ -216,6 +265,7 @@ Available templates:
 - **Keep `status:needs-triage`** — it's the template default; only change if justified
 - **Infer `area:*` from body** when the template dropdown wasn't used
 - **Verify before marking `status:ready`** — an issue that describes non-existent code should not be marked ready
+- **Regression bumps priority** — set Priority one level higher than assessed
 
 ## Error Handling
 
@@ -225,6 +275,7 @@ Available templates:
 | Org-field value rejected | Verify option name matches the org-field definition; re-fetch if needed |
 | Missing `area:*` label | Always add if absent; infer from issue body |
 | Codebase check inconclusive | Default to `needs-info` |
+| Bug cannot be reproduced | Note in comment; do not assume it's fixed — flag as environment-specific or needs-info |
 
 ## Constraints
 
@@ -234,3 +285,4 @@ Available templates:
 - Priority, Effort, Type are set via **org-fields** (API), NOT via labels.
 - Never remove existing labels added by the user.
 - Do not mark an issue `status:ready` unless the codebase has been verified.
+- **Always triage before escalating.** Escalation is not triage.
