@@ -171,7 +171,8 @@ After creation, confirm with a one-liner: issue number, title, type, Priority, E
 ## Constraints
 
 - Prefix **every** `gh api` call with `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'` (Windows Git Bash path-rewrite bug).
-- Do NOT use `-f` or `-F` for the `issue_field_values` array — use `--input -`.
+- Use `--input -` for `issue_field_values` array — not `-f` or `-F`.
+- **Priority** values: `Urgent`, `High`, `Medium`, `Low`. **Effort** values: `High`, `Medium`, `Low`. **Type** values: `Task`, `Bug`, `Feature`.
 - Do NOT use label names that don't exist — check `gh label list` first.
 - Priority, Effort, Type are set via **org-fields** (API), NOT via labels.
 - Do NOT open blank issues — always use the template picker or the structured API flow.

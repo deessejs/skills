@@ -242,5 +242,6 @@ For questions, consider using GitHub Discussions instead of issues.
 
 - Prefix **every** `gh api` call with `MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*'` (Windows Git Bash path-rewrite bug).
 - Use `--input -` for `issue_field_values` array — not `-f` or `-F`.
+- **Priority** values: `Urgent`, `High`, `Medium`, `Low`. **Effort** values: `High`, `Medium`, `Low`. **Type** values: `Task`, `Bug`, `Feature`.
 - Priority, Effort, Type are set via **org-fields** (API), NOT via labels.
 - Never remove existing labels added by the user.
