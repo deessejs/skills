@@ -186,104 +186,27 @@ Labels to add if missing (do NOT remove existing labels):
 
 ### Step 8 — Post triage comment
 
+Read the relevant template from `comments-templates/<status>.md` and fill in the placeholders:
+
 ```bash
-gh issue comment create <issueNumber> --body "..."
+# Read the template
+cat comments-templates/<status>.md
+
+# Post the comment
+gh issue comment create <issueNumber> --body "$(cat comments-templates/<status>.md)"
 ```
 
-Use the template below that matches your decision.
+Available templates:
 
----
-
-## Comment Templates
-
-### `status: ready`
-
-```
-## Triage Review
-
-**Type:** `{type}`
-**Priority:** `{Priority}`
-**Effort:** `{Effort}`
-**Status:** `status:ready`
-**Area:** `area:<...>`
-
-**Codebase:** Verified — the issue matches the current state of the code.
-
-**Decision:** All required information provided and verified. This issue is ready to be picked up.
-
----
-*Triage by Tech Lead Agent*
-```
-
-### `needs-info`
-
-```
-## Triage Review
-
-**Status:** `needs-info` — Additional information required
-
-**Decision:** This issue cannot be triaged yet.
-
-**Reason:** <incomplete / unverifiable / describes non-existent bug or feature>
-
-**Missing fields:**
-- <list each missing required field>
-
-Please update the issue with the missing information so it can be properly triaged.
-
----
-*Triage by Tech Lead Agent*
-```
-
-### `status: blocked`
-
-```
-## Triage Review
-
-**Type:** `{type}`
-**Status:** `status:blocked`
-
-**Decision:** This issue cannot be acted on until the blocking issue is resolved.
-
-**Blocking:** #<issue number> — <brief description>
-
-Once the blocking issue is resolved, this can be moved to `status:ready`.
-
----
-*Triage by Tech Lead Agent*
-```
-
-### `duplicate`
-
-```
-## Triage Review
-
-**Status:** `duplicate`
-
-**Decision:** This issue is a duplicate of #<existing issue number>.
-
-<a brief explanation of why — similar root cause / same feature request / same bug>
-
-Please continue the discussion on #<existing issue number> if needed.
-
----
-*Triage by Tech Lead Agent*
-```
-
-### Closure labels (`wontfix`, `question`, `invalid`)
-
-```
-## Triage Review
-
-**Status:** `<wontfix | question | invalid>`
-
-**Decision:** <Brief explanation>
-
-For questions, consider using GitHub Discussions instead of issues.
-
----
-*Triage by Tech Lead Agent*
-```
+| Decision | Template |
+|---|---|
+| `status:ready` | `comments-templates/status-ready.md` |
+| `needs-info` | `comments-templates/needs-info.md` |
+| `status:blocked` | `comments-templates/status-blocked.md` |
+| `duplicate` | `comments-templates/duplicate.md` |
+| `wontfix` | `comments-templates/wontfix.md` |
+| `question` | `comments-templates/question.md` |
+| `invalid` | `comments-templates/invalid.md` |
 
 ## Label Handling Rules
 
