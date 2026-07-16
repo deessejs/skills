@@ -1,4 +1,4 @@
-# ds-skills
+# DeesseJS Skills
 
 Canonical aggregation point for Claude Code skills authored by the [`deessejs`](https://github.com/deessejs) GitHub organization.
 
