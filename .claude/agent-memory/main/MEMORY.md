@@ -1,0 +1,3 @@
+- [Repo purpose](project_repo_purpose.md) — ds-skills aggregates skills from github.com/deessejs; edit upstream, sync here
+- [Skills ecosystem & skills.sh](project_skills_ecosystem.md) — skills.sh is the open registry for Claude Code skills; deessejs mirrors from its own org repos
+- [Matt Pocock skills (gold standard)](reference_mattpocock_skills.md) — 172K stars; philosophy, structure, full inventory; reference for authoring deessejs skills
