@@ -8,7 +8,6 @@ tags: [triage, issue-management, best-practices]
 author: deessejs
 created: 2026-07-16
 updated: 2026-07-16
-status: draft
 ---
 
 A guide to understanding what separates a thorough, effective triage from a superficial one.
