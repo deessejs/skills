@@ -63,3 +63,4 @@ Always run the skill's own test/validation hooks (if any) after a sync before co
 - `skills/triage` — triage a GitHub issue: analyze content, apply labels, post a structured review comment
 - `skills/spec` — explore a status:ready issue, write an implementation spec for human review, push to branch
 - `skills/implement` — implement a spec-reviewed issue, or apply requested changes from a PR review
+- `skills/create-pr` — open a PR for an implemented issue: reads spec, opens PR, updates labels, posts comment
