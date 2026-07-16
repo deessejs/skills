@@ -2,6 +2,27 @@
 
 A guide to understanding what separates a thorough, effective triage from a superficial one.
 
+## TL;DR
+
+An issue is triaged when it has been **verified**, **deduplicated**, **completed**, **prioritized**, **categorized**, and given a clear **next step**. Missing any of these makes it only partially triaged — and a partially triaged issue costs the team time and attention every time someone picks it up.
+
+---
+
+## Outline
+
+- [The Definition of "Triaged"](#the-definition-of-triaged)
+- [The Six Dimensions of an Excellent Triage](#the-six-dimensions-of-an-excellent-triage)
+  - [1. Verification](#1-verification--does-the-issue-describe-reality)
+  - [2. Deduplication](#2-deduplication--has-this-been-reported-before)
+  - [3. Completeness](#3-completeness--does-the-issue-have-what-it-needs-to-be-acted-on)
+  - [4. Prioritization](#4-prioritization--how-urgent-and-how-hard)
+  - [5. Categorization](#5-categorization--where-does-this-belong)
+  - [6. Actionability](#6-actionability--what-happens-next)
+- [Regression — A Special Case](#regression--a-special-case)
+- [Escalation — When to Notify Someone Directly](#escalation--when-to-notify-someone-directly)
+- [The Cost of Poor Triage](#the-cost-of-poor-triage)
+- [Summary — The Triage Checklist](#summary--the-triage-checklist)
+
 ---
 
 ## The Definition of "Triaged"
