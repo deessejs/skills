@@ -1,11 +1,11 @@
 ---
 name: triage
-description: Triage a GitHub issue — analyze content, apply labels, set org-level fields (Priority, Effort, Type), post a structured review comment. Use when asked to triage or review an issue.
+description: Triage a GitHub issue — analyze content, search for duplicates, verify against codebase, apply labels, set org-level fields, post a structured review comment.
 ---
 
 # `triage` Skill
 
-Triage a GitHub issue: analyze content, apply labels, set org-level fields, post a structured review comment.
+Triage a GitHub issue: analyze content, search for duplicates, verify against the codebase, apply labels, set org-level fields, post a structured review comment.
 
 ## Source of truth
 
@@ -51,7 +51,46 @@ From the `labels` array, note:
 
 From the issue API response, note the existing org-field values (Priority, Effort, Type).
 
-### Step 3 — Assess completeness
+### Step 3 — Search for duplicates
+
+```bash
+# Search for open issues with similar titles
+gh search issues --repo <org>/<repo> "<title keywords>" --state open --limit 10
+```
+
+If similar issues are found:
+
+- Present them to the user
+- Ask if the new issue is a duplicate of an existing one
+- If yes → apply `duplicate` label and link to the existing issue (see closure template)
+- If no → continue
+
+### Step 4 — Verify against codebase
+
+Read the codebase to confirm the issue is real, not based on incorrect assumptions.
+
+**Bug report** (`bug` label present):
+- Locate the relevant code mentioned in the issue
+- Confirm the bug exists (or note if it cannot be reproduced)
+- If the bug does not exist → flag in triage comment
+
+**Feature request** (`enhancement` label present):
+- Check if the requested feature or equivalent already exists in the codebase
+- If the feature exists → note it in triage comment
+- If partial → note what's missing
+
+**Refactor request**:
+- Locate the code referenced in the issue
+- Confirm the problematic pattern exists
+- If the code looks fine → flag it
+
+**Task / chore**:
+- Identify the files or areas mentioned
+- Confirm the task is applicable and not already done
+
+If the issue describes something that doesn't match reality → mark as `needs-info` with explanation. Do not apply `status:ready` on an unverified issue.
+
+### Step 5 — Assess completeness
 
 Based on the template type, check for required fields:
 
@@ -70,29 +109,35 @@ Based on the template type, check for required fields:
 - ✅ Is the body substantive (not just a title)?
 - ✅ Is the intent clear enough to act on?
 
-### Step 4 — Triage decision
+### Step 6 — Triage decision
 
 Apply the decision tree:
 
 ```
-1. Is it complete?
-   NO  → set needs-info
+1. Is it a duplicate of an existing issue?
+   YES → label: duplicate + link to existing issue
+
+2. Is it complete?
+   NO  → label: needs-info
    YES → continue
 
-2. Is it a valid task? (not dup/question/invalid/wontfix)
-   duplicate  → label: duplicate
+3. Is it a valid task? (not question/invalid/wontfix)
    wontfix    → label: wontfix
    question   → label: question
    invalid    → label: invalid
    YES        → continue
 
-3. Is it blocked by another issue? (mentioned in body or comments)
+4. Is it blocked by another issue? (mentioned in body or comments)
    YES → label: status:blocked + link blocking issue
 
-4. Otherwise → status:ready
+5. Does the issue match reality? (codebase verified)
+   NO  → label: needs-info with explanation
+   YES → continue
+
+6. Otherwise → status:ready
 ```
 
-### Step 5 — Set org-fields and labels
+### Step 7 — Set org-fields and labels
 
 #### Org-fields (Priority, Effort, Type)
 
@@ -128,9 +173,9 @@ Labels to add if missing (do NOT remove existing labels):
 - Infer from body content if the dropdown was not used
 
 **status:** (override template default only when justified)
-- `status:ready` — complete + valid + unblocked
+- `status:ready` — complete + valid + unblocked + verified
 - `status:needs-triage` — keep as-is, already set by template
-- `needs-info` — incomplete, ask for more
+- `needs-info` — incomplete or unverifiable, ask for more
 - `status:in-progress` — someone is already working it
 - `status:blocked` — depends on another issue
 
@@ -139,7 +184,7 @@ Labels to add if missing (do NOT remove existing labels):
 - `github_actions` — related to CI/CD
 - `dependencies` — dependency update request
 
-### Step 6 — Post triage comment
+### Step 8 — Post triage comment
 
 ```bash
 gh issue comment create <issueNumber> --body "..."
@@ -162,7 +207,9 @@ Use the template below that matches your decision.
 **Status:** `status:ready`
 **Area:** `area:<...>`
 
-**Decision:** All required information provided. This issue is ready to be picked up.
+**Codebase:** Verified — the issue matches the current state of the code.
+
+**Decision:** All required information provided and verified. This issue is ready to be picked up.
 
 ---
 *Triage by Tech Lead Agent*
@@ -175,7 +222,9 @@ Use the template below that matches your decision.
 
 **Status:** `needs-info` — Additional information required
 
-**Decision:** This issue is missing required information and cannot be triaged yet.
+**Decision:** This issue cannot be triaged yet.
+
+**Reason:** <incomplete / unverifiable / describes non-existent bug or feature>
 
 **Missing fields:**
 - <list each missing required field>
@@ -204,16 +253,31 @@ Once the blocking issue is resolved, this can be moved to `status:ready`.
 *Triage by Tech Lead Agent*
 ```
 
-### Closure labels (`duplicate`, `wontfix`, `question`, `invalid`)
+### `duplicate`
 
 ```
 ## Triage Review
 
-**Status:** `<duplicate | wontfix | question | invalid>`
+**Status:** `duplicate`
+
+**Decision:** This issue is a duplicate of #<existing issue number>.
+
+<a brief explanation of why — similar root cause / same feature request / same bug>
+
+Please continue the discussion on #<existing issue number> if needed.
+
+---
+*Triage by Tech Lead Agent*
+```
+
+### Closure labels (`wontfix`, `question`, `invalid`)
+
+```
+## Triage Review
+
+**Status:** `<wontfix | question | invalid>`
 
 **Decision:** <Brief explanation>
-
-<If a related issue exists, link it here.>
 
 For questions, consider using GitHub Discussions instead of issues.
 
@@ -228,7 +292,7 @@ For questions, consider using GitHub Discussions instead of issues.
 - **Preserve user intent** — keep labels even if they seem slightly off
 - **Keep `status:needs-triage`** — it's the template default; only change if justified
 - **Infer `area:*` from body** when the template dropdown wasn't used
-- **When in doubt, ask for more info** (`needs-info`) rather than guessing
+- **Verify before marking `status:ready`** — an issue that describes non-existent code should not be marked ready
 
 ## Error Handling
 
@@ -237,6 +301,7 @@ For questions, consider using GitHub Discussions instead of issues.
 | Org-field GET returns 404 | Report to user — org may not have Issue Fields enabled |
 | Org-field value rejected | Verify option name matches the org-field definition; re-fetch if needed |
 | Missing `area:*` label | Always add if absent; infer from issue body |
+| Codebase check inconclusive | Default to `needs-info` |
 
 ## Constraints
 
@@ -245,3 +310,4 @@ For questions, consider using GitHub Discussions instead of issues.
 - **Priority** values: `Urgent`, `High`, `Medium`, `Low`. **Effort** values: `High`, `Medium`, `Low`. **Type** values: `Task`, `Bug`, `Feature`.
 - Priority, Effort, Type are set via **org-fields** (API), NOT via labels.
 - Never remove existing labels added by the user.
+- Do not mark an issue `status:ready` unless the codebase has been verified.
