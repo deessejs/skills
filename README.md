@@ -4,6 +4,12 @@ Canonical aggregation point for Claude Code skills authored by the [`deessejs`](
 
 Each skill lives in its own source repository under `github.com/deessejs/<skill-name>`. This repo mirrors them here so a single checkout gives an agent (human or AI) access to the full ecosystem.
 
+## About
+
+**DeesseJS** — [deessejs.com](https://deessejs.com) — is the SaaS template that never sleeps. Every surface your agents need — auth, billing, jobs, storage, notifications, API — is already wired. Your agents don't start from scratch. They start from a complete system.
+
+**Topics:** SaaS template, agentic development, monorepo, TypeScript, typed RPC, Hono, oRPC, PostgreSQL, Drizzle ORM, Stripe billing, multi-tenant, AGENTS.md, Claude Code, Codex, Cursor
+
 ## Skills
 
 | Skill | Description |
