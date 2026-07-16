@@ -42,8 +42,11 @@ Find PRs merged to staging since the last release tag:
 ```bash
 LAST_TAG=$(git describe --tags --abbrev=0 origin/main 2>/dev/null || echo "none")
 
-# Get commits merged to staging since last tag
-git log --oneline origin/main..origin/staging
+# Get the next version from changeset
+NEXT_VERSION=$(cat .changeset/*.md | grep -oP '(?<=^## )\d+\.\d+\.\d+' || echo "patch")
+
+# Create release branch from main
+RELEASE_BRANCH="release/v${NEXT_VERSION}"
 ```
 
 List the PRs that contributed those commits:
@@ -95,7 +98,7 @@ Create a release branch with the selected PRs:
 SELECTED_PR_NUMS="{1,2,3}"
 
 # Create release branch from main
-RELEASE_BRANCH="release/$(date +%Y-%m-%d)"
+RELEASE_BRANCH="release/v${NEXT_VERSION}"
 git checkout -b "$RELEASE_BRANCH" origin/main
 
 # Cherry-pick commits from the selected PRs

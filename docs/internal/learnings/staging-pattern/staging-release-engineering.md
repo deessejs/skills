@@ -40,9 +40,9 @@ impl/789-add-dashboard ── PR ──→ staging
                                         ↓
                               SELECT WHAT GOES TO MAIN
                                         ↓
-                              release/2026-07-16 ── PR ──→ main
-                                                          ↓
-                                                        AUTO-RELEASE
+                              release/v1.2.3 ── PR ──→ main
+                                                      ↓
+                                                    AUTO-RELEASE
 ```
 
 ### Key principles
@@ -119,11 +119,12 @@ impl/789-add-dashboard ── PR ──→ staging
 - **Protected** — PR required to merge
 - **CI runs on every PR** — each feature is tested before merging
 
-### Release branches (`release/{date}`)
+### Release branches (`release/v{version}`)
 
 - **Short-lived** — created for each release, deleted after merge
 - **Selective** — cherry-picks only the PRs selected for this release
 - **Contains changeset** — the version bump and changelog for this release
+- **Named by version** — e.g., `release/v1.2.3`, not by date
 - **One PR to main** — all selected PRs in one release branch
 
 ### Feature branches (`impl/{n}-{slug}`)
@@ -205,7 +206,7 @@ PRs pile up in staging and nobody knows what's ready to ship.
 | `main` | Stable, deployable | Only receives merges from release branches |
 | `staging` | Integration sandbox | All PRs merge here first |
 | `impl/*` | Feature work | Short-lived, one issue per branch |
-| `release/*` | Selected PRs for release | Cherry-pick from staging, PR to main |
+| `release/v{version}` | Selected PRs for release | Cherry-pick from staging, PR to main, named by version |
 | `hotfix/*` | Critical fixes | Goes directly to main, backport to staging |
 
 The pattern ensures that `main` is always clean, integration happens in staging, and you control exactly what ships in each release.
