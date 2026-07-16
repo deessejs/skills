@@ -1,11 +1,11 @@
 ---
 name: create-pr
-description: Open a PR for an implemented issue — reads the spec, opens PR, updates labels, posts comment. Run after /implement #{n}. Use when asked to create a PR, open a PR, or create a pull request.
+description: Open a PR for an implemented issue — reads the spec, validates the implementation is done, opens PR, updates labels, posts comment.
 ---
 
 # `create-pr` Skill
 
-Open a PR, update issue labels, assign, and post a comment.
+Open a PR, validate the implementation is done, update issue labels, assign, and post a comment.
 
 ## When to use
 
@@ -13,12 +13,22 @@ Open a PR, update issue labels, assign, and post a comment.
 
 Run this **after** `/implement #{n}` — the branch must be pushed with the implementation.
 
+## Prerequisites
+
+The implementation must be **done** according to the Definition of Done:
+
+1. All acceptance criteria from the spec are met
+2. Build, typecheck, tests, and lint pass
+3. Relevant documentation is updated
+4. No regressions are introduced
+5. The implementation stays within the spec's scope boundaries
+
 ## Workflow overview
 
 ```
 0. Reset       — return to staging and pull latest
 1. Fetch       — read the issue + the spec
-2. Check       — gate A: branch on origin · gate B: no existing open PR
+2. Validate    — check implementation is done (Definition of Done)
 3. PR          — open the pull request to staging
 4. Update      — label, assign, post comment
 5. Changeset   — verify .changeset/*.md exists, add if missing
@@ -49,30 +59,46 @@ Also fetch the latest commit to confirm branch is up to date:
 git fetch origin "<impl-branch>"
 ```
 
-## §2 — Check
+## §2 — Validate (Definition of Done)
 
-**Gate A — branch on origin**
+Before opening a PR, verify the implementation is complete.
 
-```bash
-git fetch origin "<impl-branch>" 2>/dev/null && echo "found" || echo "missing"
-```
+### Check 1 — Spec status
 
-Refuse if missing:
+Read the spec YAML `status` field:
+- **`status: approved`** → proceed
+- **`status: draft`** → refuse:
+  > "The spec is not approved. Run `/implement #{n}` to review and approve it first."
 
-> "Branch `<impl-branch>` is not on origin. Run `/implement #{n}` first."
+### Check 2 — Open questions
 
-**Gate B — no existing open PR**
+If the spec has an "Open questions" section:
+- Check if all questions have been resolved
+- If any remain unresolved → refuse:
+  > "Open questions remain unresolved in the spec. Resolve them before opening a PR."
 
-```bash
-gh api --paginate "https://api.github.com/repos/<org>/<repo>/pulls?state=open&base=staging&per_page=50" \
-  --jq '.[] | select(.body | contains("#{n}")) | {number, html_url}'
-```
+### Check 3 — Acceptance criteria
 
-If a PR exists:
+If the spec has an "Acceptance criteria" section:
+- Present the criteria to the user
+- Ask them to confirm each is met:
+  > "Please confirm the following acceptance criteria are met before I open the PR:
+  >
+  > - [ ] {criterion 1}
+  > - [ ] {criterion 2}"
 
-> "A PR already exists for issue #{n}: {PR URL}. Do you want me to update it instead?"
+If any criterion is not met → refuse.
 
-If yes: proceed to §3 but use `--edit` instead of `--create`. Then go to §5 to verify the changeset file.
+### Check 4 — Scope
+
+If the spec has a "Scope OUT" section:
+- Review the diff to confirm nothing outside scope was added:
+  ```bash
+  git fetch origin "<impl-branch>"
+  git diff origin/staging...origin/<impl-branch> --stat
+  ```
+- If unexpected files are present → ask whether to proceed or clean up:
+  > "Files outside the spec scope were found in the diff. Should I remove them before opening the PR?"
 
 ## §3 — Open PR
 
@@ -80,14 +106,42 @@ If yes: proceed to §3 but use `--edit` instead of `--create`. Then go to §5 to
 gh pr create \
   --base staging \
   --title "{issue title}" \
-  --body "## Summary
+  --body "$(cat <<'EOF'
+## Summary
 
 {TL;DR from the spec}
 
+## Context
+
+{Context from the spec (2-3 sentences)}
+
+## Scope
+
+**IN:**
+{Scope IN from the spec}
+
+**OUT:**
+{Scope OUT from the spec (if present)}
+
 ## What changed
 
-- {file}: {what changed}
-- ...
+{Files to touch table from the spec}
+
+## Acceptance criteria
+
+{Acceptance criteria from the spec}
+
+{If open questions were resolved during implementation:}
+## Open questions resolved
+
+- {question}: {decision made}
+
+## Risks addressed
+
+{Risks from the spec, with resolution noted}
+
+{If regression label present:}
+> **Note:** This PR addresses a regression. A `regression` label has been applied to the issue.
 
 ## Changeset
 
@@ -108,10 +162,17 @@ Part of #{n}
 
 ---
 
-🤖 Generated with [Claude Code](https://claude.com/claude-code)" \
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)" \
   --label "{labels}" \
   --assignee <author>
 ```
+
+**Notes:**
+- Extract Scope IN/OUT, Acceptance Criteria, and Open Questions from the spec if present
+- If the spec does not have a section, omit that part from the PR body
+- If `regression` label is on the issue, mention it explicitly
 
 Capture the returned URL.
 
@@ -134,14 +195,13 @@ gh issue edit {n} --add-assignee <author>
 **3. Post a comment:**
 
 ```markdown
-<!-- triage-skill:v1 -->
 ## Implementation started
 
 PR opened: {PR URL}
 
 The spec was reviewed and approved. This PR targets `staging`. After CI green + approval, merge `staging → main` manually.
 
-_Triage by @<author>._
+_{If regression: Note: This addresses a regression. The `regression` label has been applied.}_
 ```
 
 ## §5 — Verify changeset
@@ -169,15 +229,23 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 git push origin "<impl-branch>"
 ```
 
+Determine changeset type based on scope:
+
+| Scope | Type |
+|---|---|
+| Bug fix, no new features | `patch` |
+| New feature, backward-compatible change | `minor` |
+| Breaking change, significant redesign | `major` |
+
 Tell the user:
 
-> "Changeset `.changeset/*.md` added. This will trigger the release workflow when staging → main merges."
+> "Changeset `.changeset/*.md` added as `{type}`. This will trigger the release workflow when staging → main merges."
 
 ## Output
 
-Confirm with a one-liner: PR number, title, URL, and next step.
+Confirm with a one-liner: PR number, title, changeset type, URL, and next step.
 
-> "PR #{n}: {title} — {PR URL}. Targets `staging`. After CI green + review approval, merge `staging → main` → release workflow triggers automatically."
+> "PR #{n}: {title} — {changeset type} — {PR URL}. Targets `staging`. After CI green + review approval, merge `staging → main` → release workflow triggers automatically."
 
 ## Error handling
 
@@ -185,14 +253,19 @@ Confirm with a one-liner: PR number, title, URL, and next step.
 |---|---|
 | Already on a branch | §0 resets to staging automatically |
 | Branch not on origin | Refuse — Gate A |
+| Spec not approved | Refuse — spec must be approved first |
+| Open questions unresolved | Refuse — resolve them first |
+| Acceptance criteria not met | Refuse — implement until met |
+| Unexpected files in diff | Ask user: remove or proceed |
 | PR already exists | Tell user; offer to update instead |
-| No changeset file found | Create one with `<pkg-manager> changeset add` before creating PR |
+| No changeset file found | Create one before creating PR |
 | PR creation fails | Check labels are valid, then retry |
 
 ## Constraints
 
 - **Always return to `staging` first.**
 - **Run after `/implement #{n}`** — the branch must exist and be pushed.
+- **Validate the Definition of Done before opening the PR.**
 - **PR always targets `staging`.**
 - **A `.changeset/*.md` file must be present** — the release workflow depends on it.
 - Never push to `main`.

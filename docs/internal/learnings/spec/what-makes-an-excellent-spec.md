@@ -16,7 +16,7 @@ A guide to writing specs that transform a "what needs to be done" into a "how it
 
 An implementation spec is a development plan written for a developer who knows nothing about the project. It answers **what, why, how, and when it's done** — not just a list of steps. If a developer needs to ask clarifying questions after reading the spec, the spec has failed.
 
----
+---et 
 
 ## Outline
 
